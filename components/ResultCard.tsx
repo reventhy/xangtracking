@@ -78,7 +78,9 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
     <section className="rounded-[20px] border-[0.5px] border-black/10 bg-white p-6">
       <div
         className={`overflow-hidden transition-all duration-200 ${
-          isSelectorOpen ? "max-h-0 opacity-0 pointer-events-none" : "max-h-[720px] opacity-100"
+          isSelectorOpen
+            ? "max-h-0 opacity-0 pointer-events-none overflow-hidden"
+            : "max-h-[720px] opacity-100 overflow-visible"
         }`}
         aria-hidden={isSelectorOpen}
       >
@@ -143,32 +145,34 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
           })}
         </div>
 
-        <div className="mt-5 rounded-2xl bg-[#F0EDE6] px-5 py-5">
-          <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
-            Đổ đầy bình
-          </p>
-          <p className="mt-2 text-[40px] font-medium tracking-[-1px] text-[#1a1a18] [font-variant-numeric:tabular-nums]">
-            {formatCurrency(result.fillCost)}
-          </p>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-[10px] bg-[#F0EDE6] p-4">
+        <div className="mt-5 flex flex-col gap-3">
+          <div className="rounded-2xl bg-[#F0EDE6] px-5 py-5">
             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
-              Chi phí /100km
+              Đổ đầy bình
             </p>
-            <p className="mt-2 text-[18px] font-medium text-[#1a1a18] [font-variant-numeric:tabular-nums]">
-              {formatCurrency(result.costPer100km)}
+            <p className="mt-2 text-[40px] font-medium tracking-[-1px] text-[#1a1a18] [font-variant-numeric:tabular-nums]">
+              {formatCurrency(result.fillCost)}
             </p>
           </div>
 
-          <div className="rounded-[10px] bg-[#F0EDE6] p-4">
-            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
-              Phạm vi 1 bình
-            </p>
-            <p className="mt-2 text-[18px] font-medium text-[#1a1a18] [font-variant-numeric:tabular-nums]">
-              ~{new Intl.NumberFormat("vi-VN").format(Math.round(result.fullTankRange))} km
-            </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[10px] bg-[#F0EDE6] p-4">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
+                Chi phí /100km
+              </p>
+              <p className="mt-2 text-[18px] font-medium text-[#1a1a18] [font-variant-numeric:tabular-nums]">
+                {formatCurrency(result.costPer100km)}
+              </p>
+            </div>
+
+            <div className="rounded-[10px] bg-[#F0EDE6] p-4">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
+                Phạm vi 1 bình
+              </p>
+              <p className="mt-2 text-[18px] font-medium text-[#1a1a18] [font-variant-numeric:tabular-nums]">
+                ~{new Intl.NumberFormat("vi-VN").format(Math.round(result.fullTankRange))} km
+              </p>
+            </div>
           </div>
         </div>
       </div>
