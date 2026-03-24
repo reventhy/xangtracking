@@ -16,23 +16,18 @@ export function FuelPriceBanner({ prices }: FuelPriceBannerProps) {
 
   return (
     <section className="rounded-2xl border-[0.5px] border-black/10 bg-white px-5 py-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
-            Giá xăng hôm nay · Vùng 1
-          </p>
-          <p className="mt-2 text-[13px] font-normal leading-5 text-[#888780]">
-            {isFallback
-              ? "Giá lưu gần nhất theo Petrolimex"
-              : isOcr
-                ? "OCR từ thông cáo Petrolimex"
-                : "Theo Petrolimex"}{" "}
-            • Áp dụng Vùng 1 • Cập nhật {formatShortDateTime(prices.last_updated)}
-          </p>
-        </div>
-        <span className="rounded-full bg-[#EAF3DE] px-3 py-1 text-[11px] font-medium text-[#3B6D11]">
-          {prices.next_update_note}
-        </span>
+      <div>
+        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
+          Giá xăng hôm nay · Vùng 1
+        </p>
+        <p className="mt-2 text-[13px] font-normal leading-5 text-[#888780]">
+          {isFallback
+            ? "Giá lưu gần nhất theo Petrolimex"
+            : isOcr
+              ? "OCR từ thông cáo Petrolimex"
+              : "Theo Petrolimex"}{" "}
+          • Áp dụng Vùng 1 • Cập nhật {formatShortDateTime(prices.last_updated)}
+        </p>
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3">
