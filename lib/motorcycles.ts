@@ -1,0 +1,30 @@
+import { Motorcycle } from "@/lib/types";
+
+export const motorcycles: Motorcycle[] = [
+  { id: "honda-wave-alpha", name: "Wave Alpha", brand: "Honda", tank_liters: 3.7, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.6 },
+  { id: "honda-wave-rsx", name: "Wave RSX", brand: "Honda", tank_liters: 4, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.67 },
+  { id: "honda-future-125", name: "Future 125", brand: "Honda", tank_liters: 4.6, fuel_type: "RON95-III", avg_consumption_per_100km: 1.54 },
+  { id: "honda-vision", name: "Vision", brand: "Honda", tank_liters: 4.9, fuel_type: "RON95-III", avg_consumption_per_100km: 1.88 },
+  { id: "honda-air-blade-125", name: "Air Blade 125", brand: "Honda", tank_liters: 4.4, fuel_type: "RON95-III", avg_consumption_per_100km: 2.26 },
+  { id: "honda-sh125i", name: "SH125i", brand: "Honda", tank_liters: 7, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.42 },
+  { id: "honda-sh160i", name: "SH160i", brand: "Honda", tank_liters: 7, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.48 },
+  { id: "honda-lead-125", name: "Lead 125", brand: "Honda", tank_liters: 6, fuel_type: "RON95-III", avg_consumption_per_100km: 2.16 },
+  { id: "honda-vario-160", name: "Vario 160", brand: "Honda", tank_liters: 5.5, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.2 },
+  { id: "honda-winner-x", name: "Winner X", brand: "Honda", tank_liters: 4.5, fuel_type: "RON95-IV", avg_consumption_per_100km: 1.99 },
+  { id: "yamaha-sirius", name: "Sirius", brand: "Yamaha", tank_liters: 4.2, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.65 },
+  { id: "yamaha-jupiter", name: "Jupiter", brand: "Yamaha", tank_liters: 4.1, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.55 },
+  { id: "yamaha-exciter-155", name: "Exciter 155", brand: "Yamaha", tank_liters: 5.4, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.1 },
+  { id: "yamaha-nvx-155", name: "NVX 155", brand: "Yamaha", tank_liters: 5.5, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.21 },
+  { id: "yamaha-grande", name: "Grande", brand: "Yamaha", tank_liters: 4.4, fuel_type: "RON95-III", avg_consumption_per_100km: 1.69 },
+  { id: "yamaha-janus", name: "Janus", brand: "Yamaha", tank_liters: 4.2, fuel_type: "RON95-III", avg_consumption_per_100km: 1.87 },
+  { id: "yamaha-freego", name: "FreeGo", brand: "Yamaha", tank_liters: 4.2, fuel_type: "RON95-III", avg_consumption_per_100km: 2.03 },
+  { id: "sym-elegant", name: "Elegant", brand: "SYM", tank_liters: 4.2, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.7 },
+  { id: "sym-angel", name: "Angel", brand: "SYM", tank_liters: 3.4, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.75 },
+  { id: "sym-galaxy", name: "Galaxy", brand: "SYM", tank_liters: 4, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.85 },
+  { id: "sym-elite-50", name: "Elite 50", brand: "SYM", tank_liters: 4.5, fuel_type: "E5 RON92", avg_consumption_per_100km: 2.2 },
+  { id: "piaggio-liberty", name: "Liberty", brand: "Piaggio", tank_liters: 6, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.29 },
+  { id: "piaggio-medley", name: "Medley", brand: "Piaggio", tank_liters: 7, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.35 },
+  { id: "vespa-primavera", name: "Vespa Primavera", brand: "Piaggio", tank_liters: 8, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.4 },
+  { id: "suzuki-raider-r150", name: "Raider R150", brand: "Suzuki", tank_liters: 4, fuel_type: "RON95-IV", avg_consumption_per_100km: 2.18 },
+  { id: "suzuki-address", name: "Address", brand: "Suzuki", tank_liters: 5.2, fuel_type: "E5 RON92", avg_consumption_per_100km: 1.86 }
+];
