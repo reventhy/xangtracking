@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 
@@ -19,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={beVietnamPro.className}>{children}</body>
+      <body className={beVietnamPro.className}>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
