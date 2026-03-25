@@ -74,7 +74,14 @@ export function HomeClient({ fuelPrices }: HomeClientProps) {
         <ResultCard motorcycles={motorcycles} fuelPrices={fuelPrices} />
 
         <footer className="pb-4 text-center text-[13px] text-[#888780]">
-          Giá xăng Vùng 1 theo Petrolimex • Cập nhật {formatShortDateTime(fuelPrices.last_updated)}
+          <a
+            href="https://www.linkedin.com/in/namvunhatle/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            Nhat Nam
+          </a>
         </footer>
       </div>
     </main>
