@@ -1,6 +1,6 @@
 import { createDecipheriv, createHmac } from "node:crypto";
 import { join } from "node:path";
-import { FuelPrices } from "@/lib/types";
+import { FuelPrices, FuelPricesState } from "@/lib/types";
 
 const PETROLIMEX_LOGIN_URL = "https://www.petrolimex.com.vn/_login";
 const PETROLIMEX_API_URL =
@@ -13,16 +13,6 @@ const REQUEST_TIMEOUT_MS = 6000;
 const PETROLIMEX_SYSTEM_ID = "6783dc1271ff449e95b74a9520964169";
 const PETROLIMEX_REPOSITORY_ID = "a95451e23b474fe5886bfb7cf843f53c";
 const PETROLIMEX_REPOSITORY_ENTITY_ID = "3801378fe1e045b1afa10de7c5776124";
-
-const FALLBACK_FUEL_PRICES: FuelPrices = {
-  "E5 RON92": 19470,
-  "RON95-III": 20680,
-  "RON95-IV": 21100,
-  last_updated: "2026-03-24T23:00:00+07:00",
-  next_update_note: "Tạm dùng giá dự phòng khi Petrolimex chưa phản hồi",
-  source: "fallback",
-  source_url: PETROLIMEX_PRESS_URL
-};
 
 type PetrolimexSession = {
   ID: string;
@@ -592,40 +582,51 @@ async function fetchOcrFuelPrices(announcement: AnnouncementInfo) {
     "E5 RON92": ocrPrices["E5 RON92"],
     "RON95-III": ocrPrices["RON95-III"],
     "RON95-IV": ocrPrices["RON95-IV"],
-    last_updated: announcement.lastUpdated ?? FALLBACK_FUEL_PRICES.last_updated,
+    last_updated: announcement.lastUpdated ?? new Date().toISOString(),
     next_update_note: "OCR từ thông cáo Petrolimex mới nhất",
     source: "ocr" as const,
     source_url: announcement.sourceUrl
   } satisfies FuelPrices;
 }
 
-export async function getFuelPrices() {
+export async function getFuelPrices(): Promise<FuelPricesState> {
   const latestAnnouncement = await fetchLatestAnnouncement().catch(() => undefined);
 
   try {
     const officialPrices = await fetchOfficialFuelPrices();
 
-    return latestAnnouncement
-      ? {
-          ...officialPrices,
-          last_updated: latestAnnouncement.lastUpdated ?? officialPrices.last_updated,
-          source_url: latestAnnouncement.sourceUrl
-        }
-      : officialPrices;
+    return {
+      status: "success",
+      prices: latestAnnouncement
+        ? {
+            ...officialPrices,
+            last_updated: latestAnnouncement.lastUpdated ?? officialPrices.last_updated,
+            source_url: latestAnnouncement.sourceUrl
+          }
+        : officialPrices
+    };
   } catch {
     if (latestAnnouncement) {
       try {
-        return await fetchOcrFuelPrices(latestAnnouncement);
+        return {
+          status: "success",
+          prices: await fetchOcrFuelPrices(latestAnnouncement)
+        };
       } catch {
         return {
-          ...FALLBACK_FUEL_PRICES,
-          last_updated:
-            latestAnnouncement.lastUpdated ?? FALLBACK_FUEL_PRICES.last_updated,
+          status: "error",
+          message: "Không tải được giá xăng từ Petrolimex lúc này. Vui lòng thử lại sau.",
+          last_checked: new Date().toISOString(),
           source_url: latestAnnouncement.sourceUrl
         };
       }
     }
 
-    return FALLBACK_FUEL_PRICES;
+    return {
+      status: "error",
+      message: "Không tải được giá xăng từ Petrolimex lúc này. Vui lòng thử lại sau.",
+      last_checked: new Date().toISOString(),
+      source_url: PETROLIMEX_PRESS_URL
+    };
   }
 }

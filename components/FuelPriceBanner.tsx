@@ -1,12 +1,36 @@
 import { formatCurrency, formatShortDateTime } from "@/lib/calculations";
-import { FuelPrices } from "@/lib/types";
+import { FuelPricesState } from "@/lib/types";
 
 type FuelPriceBannerProps = {
-  prices: FuelPrices;
+  state: FuelPricesState;
 };
 
-export function FuelPriceBanner({ prices }: FuelPriceBannerProps) {
-  const isFallback = prices.source === "fallback";
+export function FuelPriceBanner({ state }: FuelPriceBannerProps) {
+  if (state.status === "error") {
+    return (
+      <section className="rounded-2xl border-[0.5px] border-black/10 bg-white px-5 py-5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
+          Giá xăng hôm nay · Vùng 1
+        </p>
+        <p className="mt-2 text-[13px] leading-5 text-[#1a1a18]">{state.message}</p>
+        <p className="mt-3 text-[13px] text-[#888780]">
+          Kiểm tra lúc {formatShortDateTime(state.last_checked)}
+        </p>
+        {state.source_url ? (
+          <a
+            href={state.source_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex text-[13px] text-[#1a1a18] underline underline-offset-2"
+          >
+            Xem nguồn Petrolimex
+          </a>
+        ) : null}
+      </section>
+    );
+  }
+
+  const prices = state.prices;
   const isOcr = prices.source === "ocr";
   const items = [
     { label: "E5 RON92", value: prices["E5 RON92"] },
@@ -21,11 +45,7 @@ export function FuelPriceBanner({ prices }: FuelPriceBannerProps) {
           Giá xăng hôm nay · Vùng 1
         </p>
         <p className="mt-2 text-[13px] font-normal leading-5 text-[#888780]">
-          {isFallback
-            ? "Giá lưu gần nhất theo Petrolimex"
-            : isOcr
-              ? "OCR từ thông cáo Petrolimex"
-              : "Theo Petrolimex"}{" "}
+          {isOcr ? "OCR từ thông cáo Petrolimex" : "Theo Petrolimex"}{" "}
           • Áp dụng Vùng 1 • Cập nhật {formatShortDateTime(prices.last_updated)}
         </p>
       </div>
@@ -49,11 +69,9 @@ export function FuelPriceBanner({ prices }: FuelPriceBannerProps) {
 
       <p className="mt-4 text-[13px] leading-5 text-[#888780]">
         ⚠️{" "}
-        {isFallback
-          ? "Nguồn chính thức đang chậm phản hồi, app tạm dùng giá dự phòng cho Vùng 1"
-          : isOcr
-            ? "Giá Vùng 1 được đọc từ ảnh thông cáo Petrolimex, nên có thể có sai số OCR nhỏ"
-            : "Giá hiển thị chỉ áp dụng cho Vùng 1 và có thể thay đổi theo kỳ điều hành"}
+        {isOcr
+          ? "Giá Vùng 1 được đọc từ ảnh thông cáo Petrolimex, nên có thể có sai số OCR nhỏ"
+          : "Giá hiển thị chỉ áp dụng cho Vùng 1 và có thể thay đổi theo kỳ điều hành"}
       </p>
     </section>
   );

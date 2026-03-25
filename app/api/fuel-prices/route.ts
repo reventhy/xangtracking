@@ -10,6 +10,7 @@ export async function GET() {
   const prices = await getFuelPrices();
 
   return NextResponse.json(prices, {
+    status: prices.status === "error" ? 503 : 200,
     headers: {
       "Cache-Control": "s-maxage=1800, stale-while-revalidate=86400"
     }

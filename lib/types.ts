@@ -17,9 +17,21 @@ export type FuelPrices = {
   "RON95-IV": number;
   last_updated: string;
   next_update_note: string;
-  source?: "official" | "ocr" | "fallback";
+  source?: "official" | "ocr";
   source_url?: string;
 };
+
+export type FuelPricesState =
+  | {
+      status: "success";
+      prices: FuelPrices;
+    }
+  | {
+      status: "error";
+      message: string;
+      last_checked: string;
+      source_url?: string;
+    };
 
 export type CalculationResult = {
   fillCost: number;
