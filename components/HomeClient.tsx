@@ -13,10 +13,13 @@ type HomeClientProps = {
 
 export function HomeClient({ fuelPricesState }: HomeClientProps) {
   const isSuccess = fuelPricesState.status === "success";
+  const isNews = isSuccess && fuelPricesState.prices.source === "news";
   const isOcr = isSuccess && fuelPricesState.prices.source === "ocr";
   const [showFuelPrices, setShowFuelPrices] = useState(false);
   const sourceLabel = !isSuccess
     ? "Không tải được giá xăng"
+    : isNews
+      ? "Giá xăng hôm nay từ VnExpress"
     : isOcr
       ? "OCR giá Vùng 1 từ Petrolimex"
       : "Đồng bộ giá Vùng 1 từ Petrolimex";

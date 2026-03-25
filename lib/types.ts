@@ -1,6 +1,6 @@
 export type Brand = "Honda" | "Yamaha" | "SYM" | "Piaggio" | "Suzuki";
 
-export type FuelType = "E5 RON92" | "RON95-III" | "RON95-IV";
+export type FuelType = "E5 RON92" | "RON95-III";
 
 export type Motorcycle = {
   id: string;
@@ -14,10 +14,9 @@ export type Motorcycle = {
 export type FuelPrices = {
   "E5 RON92": number;
   "RON95-III": number;
-  "RON95-IV": number;
   last_updated: string;
   next_update_note: string;
-  source?: "official" | "ocr";
+  source?: "official" | "news" | "ocr";
   source_url?: string;
 };
 

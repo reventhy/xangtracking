@@ -18,7 +18,7 @@ const brands: Array<Brand | "Tất cả"> = [
   "Suzuki"
 ];
 
-const fuelTypes: FuelType[] = ["E5 RON92", "RON95-III", "RON95-IV"];
+const fuelTypes: FuelType[] = ["E5 RON92", "RON95-III"];
 const calculatorModes = [
   { id: "full", label: "Đổ đầy bình" },
   { id: "amount", label: "Nhập số tiền" }
