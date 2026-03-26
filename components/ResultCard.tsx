@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { calculateMotorcycleCosts, formatCurrency, formatDecimal } from "@/lib/calculations";
 import { Brand, FuelPrices, FuelType, Motorcycle } from "@/lib/types";
 import { FunnyConversion } from "./FunnyConversion";
-import { ExportButton } from "./ExportButton";
-import { ExportCard } from "./ExportCard";
 
 type ResultCardProps = {
   motorcycles: Motorcycle[];
@@ -224,10 +222,6 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
             </div>
 
             <FunnyConversion amount={result.fillCost} />
-
-            <div className="flex justify-end pt-2">
-              <ExportButton targetId="export-card" filename="tinh-xang-day-binh.png" />
-            </div>
           </div>
         ) : (
           <div className="mt-5 flex flex-col gap-3">
@@ -289,10 +283,6 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
             </div>
 
             {amountValue > 0 && <FunnyConversion amount={amountValue} />}
-
-            <div className="flex justify-end pt-2">
-              <ExportButton targetId="export-card" filename="tinh-xang-theo-tien.png" />
-            </div>
           </div>
         )}
       </div>
@@ -384,18 +374,6 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
           </div>
         </div>
       </div>
-
-      {/* Hidden Export Card for Screenshot */}
-      <ExportCard
-        motorcycle={motorcycle}
-        fuelPrices={fuelPrices}
-        fuelType={selectedFuelType}
-        fillCost={result.fillCost}
-        mode={calculatorMode}
-        amount={amountValue > 0 ? amountValue : undefined}
-        liters={amountValue > 0 ? purchasedLiters : undefined}
-        distance={amountValue > 0 ? estimatedDistance : undefined}
-      />
     </section>
   );
 }
