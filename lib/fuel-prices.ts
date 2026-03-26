@@ -1,37 +1,37 @@
-import { createDecipheriv, createHmac } from "node:crypto";
 import { unstable_cache } from "next/cache";
 import { FuelPrices, FuelPricesState } from "@/lib/types";
 
-const PETROLIMEX_LOGIN_URL = "https://www.petrolimex.com.vn/_login";
-const PETROLIMEX_API_URL =
-  "https://portals.petrolimex.com.vn/~apis/portals/cms.item/search";
-const PETROLIMEX_HOME_URL = "https://www.petrolimex.com.vn/";
+const PETROLIMEX_MOBILE_AUTH_URL =
+  "https://mobile-cms.petrolimex.com.vn/cms-service/public/api/authenticate";
+const PETROLIMEX_MOBILE_PRICES_URL =
+  "https://mobile-cms.petrolimex.com.vn/cms-service/api/v1/product-retail-applies/app/list-product-retail";
 const PETROLIMEX_PRESS_URL =
   "https://www.petrolimex.com.vn/ndi/thong-cao-bao-chi.html";
 const VNEXPRESS_FUEL_PRICES_URL = "https://vnexpress.net/chu-de/gia-xang-dau-3026";
 const REQUEST_TIMEOUT_MS = 3000;
 
-const PETROLIMEX_SYSTEM_ID = "6783dc1271ff449e95b74a9520964169";
-const PETROLIMEX_REPOSITORY_ID = "a95451e23b474fe5886bfb7cf843f53c";
-const PETROLIMEX_REPOSITORY_ENTITY_ID = "3801378fe1e045b1afa10de7c5776124";
+type MobileProduct = {
+  productName: string;
+  productCode: string;
+  priceAreaOne: number;
+  priceAreaTwo: number;
+  productTypeCode: string;
+};
 
-type PetrolimexSession = {
-  ID: string;
-  DeviceID: string;
-  Token: string;
-  Keys: {
-    AES: {
-      Key: string;
-      IV: string;
-    };
-    JWT: string;
+type MobileAuthResponse = {
+  code: number;
+  data: {
+    access_token: string;
+    expires_in: number;
   };
 };
 
-type PetrolimexProduct = {
-  Title: string;
-  Zone1Price: number;
-  LastModified: string;
+type MobilePricesResponse = {
+  code: number;
+  data: {
+    timeEffective: string;
+    lstProduct: MobileProduct[];
+  };
 };
 
 type AnnouncementInfo = {
@@ -44,65 +44,50 @@ type NewsFuelRow = {
   price: number;
 };
 
-type PetrolimexSearchResponse = {
-  Objects?: Array<{
-    Title?: string;
-    Zone1Price?: number;
-    LastModified?: string;
-  }>;
+type CachedToken = {
+  accessToken: string;
+  expiresAt: number; // Unix timestamp in ms
 };
 
-function encodeBase64Url(value: string) {
-  return Buffer.from(value, "utf8").toString("base64url");
-}
+let cachedToken: CachedToken | null = null;
 
-function decodeJwtPayload(token: string) {
-  const [, payload] = token.split(".");
-  return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<
-    string,
-    string | number
-  >;
-}
+async function getAccessToken(): Promise<string> {
+  const now = Date.now();
 
-function decryptJwtSecret(encryptedJwt: string, aesKeyHex: string, aesIvHex: string) {
-  const decipher = createDecipheriv(
-    "aes-256-cbc",
-    Buffer.from(aesKeyHex, "hex"),
-    Buffer.from(aesIvHex, "hex")
-  );
+  // Reuse token if still valid (with 60s buffer before expiry)
+  if (cachedToken && cachedToken.expiresAt > now + 60_000) {
+    return cachedToken.accessToken;
+  }
 
-  return (
-    decipher.update(encryptedJwt, "base64", "utf8") + decipher.final("utf8")
-  );
-}
-
-function signJwt(payload: Record<string, string | number>, secret: string) {
-  const header = { typ: "JWT", alg: "HS256" };
-  const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const data = `${encodedHeader}.${encodedPayload}`;
-  const signature = createHmac("sha256", secret)
-    .update(data)
-    .digest("base64url");
-
-  return `${data}.${signature}`;
-}
-
-async function fetchJson<T>(url: string) {
-  const response = await fetch(url, {
+  const response = await fetch(PETROLIMEX_MOBILE_AUTH_URL, {
+    method: "POST",
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; DoXangBaoNhieu/1.0)"
+      "Content-Type": "application/json",
+      Accept: "application/json"
     },
+    body: "{}",
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     cache: "no-store"
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    throw new Error(`Petrolimex auth failed: ${response.status} ${response.statusText}`);
   }
 
-  return (await response.json()) as T;
+  const auth = (await response.json()) as MobileAuthResponse;
+
+  if (auth.code !== 200 || !auth.data?.access_token) {
+    throw new Error(`Petrolimex auth returned unexpected response: code ${auth.code}`);
+  }
+
+  cachedToken = {
+    accessToken: auth.data.access_token,
+    expiresAt: now + auth.data.expires_in * 1000
+  };
+
+  return cachedToken.accessToken;
 }
+
 
 async function fetchText(url: string) {
   const response = await fetch(url, {
@@ -120,71 +105,6 @@ async function fetchText(url: string) {
   return response.text();
 }
 
-async function createPetrolimexApiUrl() {
-  const session = await fetchJson<PetrolimexSession>(PETROLIMEX_LOGIN_URL);
-  const jwtSecret = decryptJwtSecret(
-    session.Keys.JWT,
-    session.Keys.AES.Key,
-    session.Keys.AES.IV
-  );
-  const tokenPayload = decodeJwtPayload(session.Token);
-
-  tokenPayload.iat = Math.round(Date.now() / 1000);
-
-  const request = {
-    FilterBy: {
-      And: [
-        { SystemID: { Equals: PETROLIMEX_SYSTEM_ID } },
-        { RepositoryID: { Equals: PETROLIMEX_REPOSITORY_ID } },
-        { RepositoryEntityID: { Equals: PETROLIMEX_REPOSITORY_ENTITY_ID } },
-        { Status: { Equals: "Published" } }
-      ]
-    },
-    SortBy: {
-      LastModified: "Descending"
-    },
-    Pagination: {
-      TotalRecords: -1,
-      TotalPages: 0,
-      PageSize: 20,
-      PageNumber: 1
-    }
-  };
-
-  const params = new URLSearchParams({
-    "x-request": Buffer.from(JSON.stringify(request)).toString("base64url"),
-    "x-app-token": signJwt(tokenPayload, jwtSecret),
-    "x-session-id": encodeBase64Url(session.ID),
-    "x-device-id": encodeBase64Url(session.DeviceID),
-    "x-app-name": encodeBase64Url("NGX Websites"),
-    "x-app-platform": encodeBase64Url("Desktop PWA"),
-    language: "vi-VN"
-  });
-
-  return `${PETROLIMEX_API_URL}?${params.toString()}`;
-}
-
-function normalizeProducts(data: PetrolimexSearchResponse) {
-  return (data.Objects ?? [])
-    .filter(
-      (item): item is Required<Pick<PetrolimexProduct, "Title" | "Zone1Price" | "LastModified">> =>
-        typeof item.Title === "string" &&
-        typeof item.Zone1Price === "number" &&
-        typeof item.LastModified === "string"
-    )
-    .map((item) => ({
-      Title: item.Title,
-      Zone1Price: item.Zone1Price,
-      LastModified: item.LastModified
-    }));
-}
-
-function pickPrice(
-  products: PetrolimexProduct[],
-  matcher: (title: string) => boolean
-) {
-  return products.find((product) => matcher(product.Title))?.Zone1Price;
-}
 
 function normalizeProductTitle(title: string) {
   return title
@@ -338,7 +258,30 @@ function parseNewsArticleTimestamp(articleHtml: string) {
   ).toISOString();
 }
 
-async function fetchNewsFuelPrices() {
+function buildNewsFuelPrices(
+  e5Price: number,
+  ron95IIIPrice: number,
+  last_updated: string,
+  next_update_note: string
+): FuelPrices {
+  // News source has no zone distinction and no RON95-V data;
+  // use RON95-III as best approximation for RON95-V.
+  const zone1 = { "E5 RON92": e5Price, "RON95-III": ron95IIIPrice, "RON95-V": ron95IIIPrice };
+  return {
+    zone1,
+    zone2: zone1, // no zone distinction from news
+    allProducts: [
+      { name: "Xăng E5 RON 92", priceZone1: e5Price, priceZone2: e5Price },
+      { name: "Xăng RON 95-III", priceZone1: ron95IIIPrice, priceZone2: ron95IIIPrice }
+    ],
+    last_updated,
+    next_update_note,
+    source: "news" as const,
+    source_url: VNEXPRESS_FUEL_PRICES_URL
+  };
+}
+
+async function fetchNewsFuelPrices(): Promise<FuelPrices> {
   const topicHtml = await fetchText(VNEXPRESS_FUEL_PRICES_URL);
   const articleUrls = findLatestNewsArticleUrls(topicHtml);
 
@@ -363,14 +306,12 @@ async function fetchNewsFuelPrices() {
     )?.price;
 
     if (e5Price && ron95IIIPrice) {
-      return {
-        "E5 RON92": e5Price,
-        "RON95-III": ron95IIIPrice,
-        last_updated: parseNewsArticleTimestamp(articleHtml),
-        next_update_note: "Tự động đồng bộ từ bài viết giá xăng dầu mới nhất của VnExpress",
-        source: "news" as const,
-        source_url: VNEXPRESS_FUEL_PRICES_URL
-      } satisfies FuelPrices;
+      return buildNewsFuelPrices(
+        e5Price,
+        ron95IIIPrice,
+        parseNewsArticleTimestamp(articleHtml),
+        "Tự động đồng bộ từ bài viết giá xăng dầu mới nhất của VnExpress"
+      );
     }
   }
 
@@ -387,107 +328,86 @@ async function fetchNewsFuelPrices() {
     throw new Error("Public fuel price sources did not include enough fuel grades");
   }
 
-  return {
-    "E5 RON92": e5Price,
-    "RON95-III": ron95IIIPrice,
-    last_updated: parseNewsTableTimestamp(topicHtml),
-    next_update_note: "Tự động đồng bộ từ bảng giá xăng dầu công khai mới nhất",
-    source: "news" as const,
-    source_url: VNEXPRESS_FUEL_PRICES_URL
-  } satisfies FuelPrices;
+  return buildNewsFuelPrices(
+    e5Price,
+    ron95IIIPrice,
+    parseNewsTableTimestamp(topicHtml),
+    "Tự động đồng bộ từ bảng giá xăng dầu công khai mới nhất"
+  );
 }
 
-async function fetchOfficialFuelPrices() {
-  const apiUrl = await createPetrolimexApiUrl();
-  const data = await fetchJson<PetrolimexSearchResponse>(apiUrl);
-  const products = normalizeProducts(data);
+function parseTimeEffective(timeEffective: string) {
+  // Format: "DD/MM/YYYY HH:mm"
+  const match = timeEffective.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+
+  if (!match) {
+    return new Date().toISOString();
+  }
+
+  const [, day, month, year, hour, minute] = match;
+
+  return new Date(
+    `${year}-${month}-${day}T${hour}:${minute}:00+07:00`
+  ).toISOString();
+}
+
+async function fetchOfficialFuelPrices(): Promise<FuelPrices> {
+  const token = await getAccessToken();
+
+  const response = await fetch(PETROLIMEX_MOBILE_PRICES_URL, {
+    headers: {
+      "Accept-Language": "vi",
+      Authorization: `Bearer ${token}`
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Petrolimex prices failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as MobilePricesResponse;
+  const products = data.data?.lstProduct ?? [];
 
   if (products.length === 0) {
     throw new Error("Petrolimex price list is empty");
   }
 
-  const e5Price = pickPrice(products, (title) => {
-    const normalized = normalizeProductTitle(title);
-    return (
-      normalized.startsWith("XANG SINH HOC E5 RON 92") ||
-      normalized.startsWith("XANG E5 RON 92")
-    );
-  });
-  const ron95IIIPrice = pickPrice(products, (title) => {
-    const normalized = normalizeProductTitle(title);
-    return (
-      normalized.includes("RON 95-III") &&
-      !normalized.includes("RON 95-IV") &&
-      !normalized.includes("RON 95-V") &&
-      !normalized.includes("E10")
-    );
-  });
-  if (!e5Price || !ron95IIIPrice) {
+  const find = (matcher: (n: string) => boolean) =>
+    products.find((p) => matcher(normalizeProductTitle(p.productName)));
+
+  const e5 = find((n) => n.startsWith("XANG SINH HOC E5 RON 92") || n.startsWith("XANG E5 RON 92"));
+  const ron95III = find((n) => n.includes("RON 95-III") && !n.includes("RON 95-IV") && !n.includes("RON 95-V") && !n.includes("E10"));
+  const ron95V = find((n) => n.includes("RON 95-V") && !n.includes("E10"));
+
+  if (!e5 || !ron95III) {
     throw new Error("Petrolimex products did not include enough fuel grades");
   }
 
-  const latestTimestamp = products
-    .map((product) => new Date(product.LastModified).getTime())
-    .sort((left, right) => right - left)[0];
-
   return {
-    "E5 RON92": e5Price,
-    "RON95-III": ron95IIIPrice,
-    last_updated: new Date(latestTimestamp).toISOString(),
+    zone1: {
+      "E5 RON92": e5.priceAreaOne,
+      "RON95-III": ron95III.priceAreaOne,
+      "RON95-V": ron95V?.priceAreaOne ?? ron95III.priceAreaOne
+    },
+    zone2: {
+      "E5 RON92": e5.priceAreaTwo,
+      "RON95-III": ron95III.priceAreaTwo,
+      "RON95-V": ron95V?.priceAreaTwo ?? ron95III.priceAreaTwo
+    },
+    allProducts: products.map((p) => ({
+      name: p.productName,
+      priceZone1: p.priceAreaOne,
+      priceZone2: p.priceAreaTwo
+    })),
+    last_updated: parseTimeEffective(data.data?.timeEffective ?? ""),
     next_update_note: "Tự động đồng bộ theo công bố mới nhất của Petrolimex",
     source: "official" as const,
     source_url: PETROLIMEX_PRESS_URL
-  } satisfies FuelPrices;
-}
-
-function findLatestAnnouncementPath(pressPage: string) {
-  const listedArticleMatches = [
-    ...pressPage.matchAll(
-      /<h3[^>]*class="post-default__title"[^>]*>\s*<a href="([^"]+)"/gi
-    )
-  ]
-    .map((match) => match[1])
-    .filter((href) =>
-      /\/ndi\/thong-cao-bao-chi\/petrolimex-dieu-chinh-gia-xang-dau-tu-[^"]+\.html$/i.test(
-        href
-      )
-    );
-
-  if (listedArticleMatches.length > 0) {
-    return listedArticleMatches[0];
-  }
-
-  return pressPage.match(
-    /href="([^"]*\/ndi\/thong-cao-bao-chi\/petrolimex-dieu-chinh-gia-xang-dau-tu-[^"]+\.html)"/i
-  )?.[1];
-}
-
-async function fetchLatestAnnouncement() {
-  const pressPage = await fetchText(PETROLIMEX_PRESS_URL);
-  const latestPath = findLatestAnnouncementPath(pressPage);
-
-  if (!latestPath) {
-    return undefined;
-  }
-
-  const sourceUrl = new URL(latestPath, PETROLIMEX_PRESS_URL).toString();
-  const slugMatch = latestPath.match(/ngay-(\d{1,2})-(\d{1,2})-(\d{4})\.html$/i);
-
-  if (!slugMatch) {
-    return {
-      sourceUrl
-    };
-  }
-
-  const [, day, month, year] = slugMatch;
-
-  return {
-    sourceUrl,
-    lastUpdated: new Date(
-      `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T23:00:00+07:00`
-    ).toISOString()
   };
 }
+
 
 /* OCR functions disabled - not compatible with Vercel serverless environment
 function normalizeOcrText(text: string) {

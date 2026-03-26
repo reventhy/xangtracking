@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { calculateMotorcycleCosts, formatCurrency, formatDecimal } from "@/lib/calculations";
-import { Brand, FuelPrices, FuelType, Motorcycle } from "@/lib/types";
+import { calculateMotorcycleCosts, formatCurrency, formatDecimal, getFuelPrice } from "@/lib/calculations";
+import { Brand, FuelPrices, FuelType, FuelZone, Motorcycle } from "@/lib/types";
 
 type ResultCardProps = {
   motorcycles: Motorcycle[];
@@ -18,7 +18,11 @@ const brands: Array<Brand | "Tất cả"> = [
   "Suzuki"
 ];
 
-const fuelTypes: FuelType[] = ["E5 RON92", "RON95-III"];
+const fuelTypes: FuelType[] = ["E5 RON92", "RON95-III", "RON95-V"];
+const fuelZones: Array<{ id: FuelZone; label: string }> = [
+  { id: "zone1", label: "Vùng 1" },
+  { id: "zone2", label: "Vùng 2" }
+];
 const calculatorModes = [
   { id: "full", label: "Đổ đầy bình" },
   { id: "amount", label: "Nhập số tiền" }
@@ -36,10 +40,11 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
   const [calculatorMode, setCalculatorMode] =
     useState<(typeof calculatorModes)[number]["id"]>("full");
   const [amountInput, setAmountInput] = useState("");
+  const [selectedZone, setSelectedZone] = useState<FuelZone>("zone1");
 
   const motorcycle = selectedMotorcycle;
-  const result = calculateMotorcycleCosts(motorcycle, fuelPrices, selectedFuelType);
-  const pricePerLiter = fuelPrices[selectedFuelType];
+  const result = calculateMotorcycleCosts(motorcycle, fuelPrices, selectedFuelType, selectedZone);
+  const pricePerLiter = getFuelPrice(fuelPrices, selectedFuelType, selectedZone);
   const amountValue = Number.parseInt(amountInput || "0", 10);
   const purchasedLiters = amountValue > 0 ? amountValue / pricePerLiter : 0;
   const estimatedDistance =
@@ -183,6 +188,27 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
                 onClick={() => setSelectedFuelType(fuelType)}
               >
                 {fuelType}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-2 flex gap-2">
+          {fuelZones.map((zone) => {
+            const isActive = selectedZone === zone.id;
+
+            return (
+              <button
+                key={zone.id}
+                type="button"
+                className={`rounded-[20px] border-[0.5px] px-3 py-2 text-[13px] font-medium ${
+                  isActive
+                    ? "border-[#1a1a18] bg-[#1a1a18] text-[#F0EDE6]"
+                    : "border-black/10 bg-white text-[#888780]"
+                }`}
+                onClick={() => setSelectedZone(zone.id)}
+              >
+                {zone.label}
               </button>
             );
           })}

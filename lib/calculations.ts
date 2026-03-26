@@ -1,4 +1,4 @@
-import { CalculationResult, FuelPrices, FuelType, Motorcycle } from "@/lib/types";
+import { CalculationResult, FuelPrices, FuelType, FuelZone, Motorcycle } from "@/lib/types";
 
 export function formatCurrency(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(Math.round(value))} đ`;
@@ -22,16 +22,17 @@ export function formatShortDateTime(isoDate: string) {
   }).format(new Date(isoDate));
 }
 
-export function getFuelPrice(prices: FuelPrices, fuelType: FuelType) {
-  return prices[fuelType];
+export function getFuelPrice(prices: FuelPrices, fuelType: FuelType, zone: FuelZone = "zone1") {
+  return prices[zone][fuelType];
 }
 
 export function calculateMotorcycleCosts(
   motorcycle: Motorcycle,
   prices: FuelPrices,
-  fuelType: FuelType = motorcycle.fuel_type
+  fuelType: FuelType = motorcycle.fuel_type,
+  zone: FuelZone = "zone1"
 ): CalculationResult {
-  const pricePerLiter = getFuelPrice(prices, fuelType);
+  const pricePerLiter = getFuelPrice(prices, fuelType, zone);
 
   return {
     fillCost: motorcycle.tank_liters * pricePerLiter,
