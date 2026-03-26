@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { calculateMotorcycleCosts, formatCurrency, formatDecimal } from "@/lib/calculations";
 import { Brand, FuelPrices, FuelType, Motorcycle } from "@/lib/types";
+import { FunnyConversion } from "./FunnyConversion";
+import { ExportButton } from "./ExportButton";
 
 type ResultCardProps = {
   motorcycles: Motorcycle[];
@@ -95,6 +97,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
   return (
     <section className="rounded-[20px] border-[0.5px] border-black/10 bg-white p-6">
       <div
+        id="result-card-content"
         className={`overflow-hidden transition-all duration-200 ${
           isSelectorOpen
             ? "max-h-0 opacity-0 pointer-events-none overflow-hidden"
@@ -218,9 +221,15 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
                 </p>
               </div>
             </div>
+
+            <FunnyConversion amount={result.fillCost} />
+
+            <div className="flex justify-end pt-2">
+              <ExportButton targetId="result-card-content" filename="tinh-xang-day-binh.png" />
+            </div>
           </div>
         ) : (
-          <div className="mt-5">
+          <div className="mt-5 flex flex-col gap-3">
             <div>
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
                 Số tiền
@@ -276,6 +285,12 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
                     : "—"}
                 </p>
               </div>
+            </div>
+
+            {amountValue > 0 && <FunnyConversion amount={amountValue} />}
+
+            <div className="flex justify-end pt-2">
+              <ExportButton targetId="result-card-content" filename="tinh-xang-theo-tien.png" />
             </div>
           </div>
         )}
