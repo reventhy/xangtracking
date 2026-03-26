@@ -57,15 +57,15 @@ export function FunnyConversion({ amount }: FunnyConversionProps) {
   }, [amount, conversion.item.name]);
 
   return (
-    <div className="rounded-[10px] bg-[#EAF3DE] p-4">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#3B6D11]">
+    <div className="rounded-[10px] bg-[#0058A8] p-4">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/80">
         Cùng số tiền này
       </p>
-      <p className="mt-2 text-[18px] font-medium text-[#1a1a18]">
+      <p className="mt-2 text-[18px] font-medium text-white">
         {conversion.message}
       </p>
       {alternative && alternative.quantity >= 1 && (
-        <p className="mt-1 text-[13px] text-[#888780]">
+        <p className="mt-1 text-[13px] text-white/70">
           Hoặc {alternative.quantity} {alternative.item.name}
         </p>
       )}

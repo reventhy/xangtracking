@@ -40,7 +40,7 @@ export function ExportCard({
       style={{ position: "fixed", left: "-9999px", top: 0, backgroundColor: "#ffffff" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
             Đổ Xăng Bao Nhiêu?
