@@ -484,19 +484,20 @@ async function fetchLatestAnnouncement() {
   };
 }
 
+/* OCR functions disabled - not compatible with Vercel serverless environment
 function normalizeOcrText(text: string) {
   return text
-    .normalize("NFKD")
-    .replace(/[|]/g, " ")
-    .replace(/[“”]/g, '"')
-    .replace(/[’]/g, "'")
-    .replace(/\s+/g, " ")
+    .normalize(“NFKD”)
+    .replace(/[|]/g, “ “)
+    .replace(/[“”]/g, ‘”’)
+    .replace(/[‘]/g, “’”)
+    .replace(/\s+/g, “ “)
     .trim()
     .toUpperCase();
 }
 
 function parsePriceToken(token: string) {
-  const digits = token.replace(/\D/g, "");
+  const digits = token.replace(/\D/g, “”);
 
   if (digits.length < 4) {
     return undefined;
@@ -510,7 +511,7 @@ function extractZone1Price(
   matcher: (line: string) => boolean
 ) {
   for (const text of texts) {
-    const lines = text.split("\n");
+    const lines = text.split(“\n”);
 
     for (const rawLine of lines) {
       const line = normalizeOcrText(rawLine);
@@ -521,7 +522,7 @@ function extractZone1Price(
 
       const prices = line.match(/\d{2}[.,]\d{3}|\d{5}/g) ?? [];
       const parsed = prices.map(parsePriceToken).filter(
-        (value): value is number => typeof value === "number"
+        (value): value is number => typeof value === “number”
       );
 
       if (parsed.length > 0) {
@@ -540,7 +541,7 @@ function extractZone1PriceByLineIndex(
 ) {
   for (const text of texts) {
     const matchedLines = text
-      .split("\n")
+      .split(“\n”)
       .map((line) => normalizeOcrText(line))
       .filter(matcher);
 
@@ -552,7 +553,7 @@ function extractZone1PriceByLineIndex(
 
     const prices = targetLine.match(/\d{2}[.,]\d{3}|\d{5}/g) ?? [];
     const parsed = prices.map(parsePriceToken).filter(
-      (value): value is number => typeof value === "number"
+      (value): value is number => typeof value === “number”
     );
 
     if (parsed.length > 0) {
@@ -568,7 +569,7 @@ async function extractStructuredZone1Prices(
     setParameters: (parameters: Record<string, string | number>) => Promise<unknown>;
     recognize: (image: Buffer) => Promise<{ data: { text: string } }>;
   },
-  sharpModule: typeof import("sharp"),
+  sharpModule: typeof import(“sharp”),
   input: Buffer,
   width: number,
   height: number
@@ -584,7 +585,7 @@ async function extractStructuredZone1Prices(
 
   await worker.setParameters({
     tessedit_pageseg_mode: 7,
-    tessedit_char_whitelist: "0123456789.,"
+    tessedit_char_whitelist: “0123456789.,”
   });
 
   for (let rowIndex = 0; rowIndex < 4; rowIndex += 1) {
@@ -605,7 +606,7 @@ async function extractStructuredZone1Prices(
     const text = (await worker.recognize(crop)).data.text.trim();
     const value = parsePriceToken(text);
 
-    if (typeof value !== "number") {
+    if (typeof value !== “number”) {
       return undefined;
     }
 
@@ -613,39 +614,39 @@ async function extractStructuredZone1Prices(
   }
 
   return {
-    "E5 RON92": zone1Rows[3],
-    "RON95-III": zone1Rows[1]
+    “E5 RON92”: zone1Rows[3],
+    “RON95-III”: zone1Rows[1]
   };
 }
 
 async function fetchAnnouncementImageUrl(sourceUrl: string) {
   const html = await fetchText(sourceUrl);
   const matchedImage = html.match(
-    /<img[^>]+src="([^"]*gi%C3%A1%20b%C3%A1n%20l%E1%BA%BB[^"]+)"/i
+    /<img[^>]+src=”([^”]*gi%C3%A1%20b%C3%A1n%20l%E1%BA%BB[^”]+)”/i
   );
 
   if (!matchedImage) {
     return undefined;
   }
 
-  return matchedImage[1].startsWith("http")
+  return matchedImage[1].startsWith(“http”)
     ? matchedImage[1]
     : new URL(matchedImage[1], sourceUrl).toString();
 }
 
 async function performFuelPriceOcr(imageUrl: string) {
   const [{ default: sharp }, { createWorker, PSM }] = await Promise.all([
-    import("sharp"),
-    import("tesseract.js")
+    import(“sharp”),
+    import(“tesseract.js”)
   ]);
 
   const imageResponse = await fetch(imageUrl, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; DoXangBaoNhieu/1.0)",
+      “User-Agent”: “Mozilla/5.0 (compatible; DoXangBaoNhieu/1.0)”,
       Referer: PETROLIMEX_HOME_URL
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS * 3),
-    cache: "no-store"
+    cache: “no-store”
   });
 
   if (!imageResponse.ok) {
@@ -681,7 +682,7 @@ async function performFuelPriceOcr(imageUrl: string) {
       .threshold(170)
   ];
 
-  const worker = await createWorker("eng");
+  const worker = await createWorker(“eng”);
   const ocrTexts: string[] = [];
 
   try {
@@ -702,7 +703,7 @@ async function performFuelPriceOcr(imageUrl: string) {
 
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-      preserve_interword_spaces: "1"
+      preserve_interword_spaces: “1”
     });
 
     for (const variant of variants) {
@@ -723,7 +724,7 @@ async function performFuelPriceOcr(imageUrl: string) {
     extractZone1Price(
       ocrTexts,
       (line) =>
-        line.includes("KHONG CHI") &&
+        line.includes(“KHONG CHI”) &&
         /RON/.test(line) &&
         !/RON\s*95[-\s]?(IV|V)\b/.test(line) &&
         !/E10|E5/.test(line)
@@ -734,12 +735,12 @@ async function performFuelPriceOcr(imageUrl: string) {
   );
 
   if (!ron95IIIPrice || !e5Price) {
-    throw new Error("OCR could not extract enough Petrolimex fuel prices");
+    throw new Error(“OCR could not extract enough Petrolimex fuel prices”);
   }
 
   return {
-    "E5 RON92": e5Price,
-    "RON95-III": ron95IIIPrice,
+    “E5 RON92”: e5Price,
+    “RON95-III”: ron95IIIPrice,
     ocrTexts
   };
 }
@@ -748,33 +749,28 @@ async function fetchOcrFuelPrices(announcement: AnnouncementInfo) {
   const imageUrl = await fetchAnnouncementImageUrl(announcement.sourceUrl);
 
   if (!imageUrl) {
-    throw new Error("Petrolimex announcement did not expose a price image");
+    throw new Error(“Petrolimex announcement did not expose a price image”);
   }
 
   const ocrPrices = await performFuelPriceOcr(imageUrl);
 
   return {
-    "E5 RON92": ocrPrices["E5 RON92"],
-    "RON95-III": ocrPrices["RON95-III"],
+    “E5 RON92”: ocrPrices[“E5 RON92”],
+    “RON95-III”: ocrPrices[“RON95-III”],
     last_updated: announcement.lastUpdated ?? new Date().toISOString(),
-    next_update_note: "OCR từ thông cáo Petrolimex mới nhất",
-    source: "ocr" as const,
+    next_update_note: “OCR từ thông cáo Petrolimex mới nhất”,
+    source: “ocr” as const,
     source_url: announcement.sourceUrl
   } satisfies FuelPrices;
 }
+*/
 
 export async function getFuelPrices(): Promise<FuelPricesState> {
   const latestAnnouncementPromise = fetchLatestAnnouncement().catch(() => undefined);
   const latestAnnouncement = await latestAnnouncementPromise;
 
-  if (latestAnnouncement) {
-    try {
-      return {
-        status: "success",
-        prices: await fetchOcrFuelPrices(latestAnnouncement)
-      };
-    } catch {}
-  }
+  // Skip OCR in serverless environment - use API method instead
+  // OCR requires tesseract.js worker which doesn't work well in Vercel serverless
 
   try {
     const officialPrices = await fetchOfficialFuelPrices();
