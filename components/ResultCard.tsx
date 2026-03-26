@@ -5,6 +5,7 @@ import { calculateMotorcycleCosts, formatCurrency, formatDecimal } from "@/lib/c
 import { Brand, FuelPrices, FuelType, Motorcycle } from "@/lib/types";
 import { FunnyConversion } from "./FunnyConversion";
 import { ExportButton } from "./ExportButton";
+import { ExportCard } from "./ExportCard";
 
 type ResultCardProps = {
   motorcycles: Motorcycle[];
@@ -225,7 +226,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
             <FunnyConversion amount={result.fillCost} />
 
             <div className="flex justify-end pt-2">
-              <ExportButton targetId="result-card-content" filename="tinh-xang-day-binh.png" />
+              <ExportButton targetId="export-card" filename="tinh-xang-day-binh.png" />
             </div>
           </div>
         ) : (
@@ -290,7 +291,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
             {amountValue > 0 && <FunnyConversion amount={amountValue} />}
 
             <div className="flex justify-end pt-2">
-              <ExportButton targetId="result-card-content" filename="tinh-xang-theo-tien.png" />
+              <ExportButton targetId="export-card" filename="tinh-xang-theo-tien.png" />
             </div>
           </div>
         )}
@@ -383,6 +384,18 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
           </div>
         </div>
       </div>
+
+      {/* Hidden Export Card for Screenshot */}
+      <ExportCard
+        motorcycle={motorcycle}
+        fuelPrices={fuelPrices}
+        fuelType={selectedFuelType}
+        fillCost={result.fillCost}
+        mode={calculatorMode}
+        amount={amountValue > 0 ? amountValue : undefined}
+        liters={amountValue > 0 ? purchasedLiters : undefined}
+        distance={amountValue > 0 ? estimatedDistance : undefined}
+      />
     </section>
   );
 }
