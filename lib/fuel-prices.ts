@@ -1,4 +1,5 @@
 import { createDecipheriv, createHmac } from "node:crypto";
+import { join } from "node:path";
 import { FuelPrices, FuelPricesState } from "@/lib/types";
 
 const PETROLIMEX_LOGIN_URL = "https://www.petrolimex.com.vn/_login";
@@ -681,7 +682,17 @@ async function performFuelPriceOcr(imageUrl: string) {
       .threshold(170)
   ];
 
-  const worker = await createWorker("eng", 1);
+  const worker = await createWorker("eng", 1, {
+    workerPath: join(
+      process.cwd(),
+      "node_modules",
+      "tesseract.js",
+      "src",
+      "worker-script",
+      "node",
+      "index.js"
+    )
+  });
   const ocrTexts: string[] = [];
 
   try {
