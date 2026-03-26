@@ -1,7 +1,7 @@
 import { HomeClient } from "@/components/HomeClient";
 import { getFuelPrices } from "@/lib/fuel-prices";
 
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const fuelPricesState = await getFuelPrices();

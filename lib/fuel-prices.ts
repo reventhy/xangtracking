@@ -94,9 +94,7 @@ async function fetchJson<T>(url: string) {
       "User-Agent": "Mozilla/5.0 (compatible; DoXangBaoNhieu/1.0)"
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    next: {
-      revalidate: 1800
-    }
+    cache: "no-store"
   });
 
   if (!response.ok) {
@@ -112,9 +110,7 @@ async function fetchText(url: string) {
       "User-Agent": "Mozilla/5.0 (compatible; DoXangBaoNhieu/1.0)"
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    next: {
-      revalidate: 1800
-    }
+    cache: "no-store"
   });
 
   if (!response.ok) {
@@ -274,9 +270,108 @@ function parseNewsTableTimestamp(html: string) {
   ).toISOString();
 }
 
+function findLatestNewsArticleUrls(topicPage: string) {
+  return [
+    ...new Set(
+      [...topicPage.matchAll(/https:\/\/vnexpress\.net\/gia-xang-dau-moi-nhat-hom-nay-[^"#?]+\.html/gi)]
+        .map((match) => match[0])
+        .map((url) => url.split("#")[0])
+    )
+  ].slice(0, 5);
+}
+
+function extractArticleTableRows(articleHtml: string) {
+  const article = articleHtml.match(/<article[^>]*class="fck_detail[\s\S]*?<\/article>/i)?.[0];
+
+  if (!article) {
+    return [];
+  }
+
+  const tableMatch = article.match(/<table[\s\S]*?<\/table>/i);
+
+  if (!tableMatch) {
+    return [];
+  }
+
+  const rows = [...tableMatch[0].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+
+  return rows
+    .map((rowMatch) => {
+      const cells = [...rowMatch[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(
+        (cellMatch) => stripHtml(cellMatch[1])
+      );
+
+      if (cells.length < 2) {
+        return undefined;
+      }
+
+      const price = parseVietnamesePrice(cells[1]);
+
+      if (typeof price !== "number") {
+        return undefined;
+      }
+
+      return {
+        label: cells[0],
+        price
+      } satisfies NewsFuelRow;
+    })
+    .filter((row): row is NewsFuelRow => Boolean(row));
+}
+
+function parseNewsArticleTimestamp(articleHtml: string) {
+  const match = articleHtml.match(
+    /<span[^>]*class="date"[^>]*>[^<]*?(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})/i
+  );
+
+  if (!match) {
+    return new Date().toISOString();
+  }
+
+  const [, day, month, year, hour, minute] = match;
+
+  return new Date(
+    `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${hour.padStart(
+      2,
+      "0"
+    )}:${minute}:00+07:00`
+  ).toISOString();
+}
+
 async function fetchNewsFuelPrices() {
-  const html = await fetchText(VNEXPRESS_FUEL_PRICES_URL);
-  const rows = extractNewsTableRows(html);
+  const topicHtml = await fetchText(VNEXPRESS_FUEL_PRICES_URL);
+  const articleUrls = findLatestNewsArticleUrls(topicHtml);
+
+  for (const articleUrl of articleUrls) {
+    const articleHtml = await fetchText(articleUrl).catch(() => undefined);
+
+    if (!articleHtml) {
+      continue;
+    }
+
+    const rows = extractArticleTableRows(articleHtml);
+    const ron95IIIPrice = rows.find((row) =>
+      /XANG\s*RON\s*95-III/i.test(normalizeProductTitle(row.label))
+    )?.price;
+    const e5Price = rows.find((row) =>
+      /XANG\s*E5\s*RON\s*92/i.test(normalizeProductTitle(row.label))
+    )?.price;
+
+    if (!e5Price || !ron95IIIPrice) {
+      continue;
+    }
+
+    return {
+      "E5 RON92": e5Price,
+      "RON95-III": ron95IIIPrice,
+      last_updated: parseNewsArticleTimestamp(articleHtml),
+      next_update_note: "Tự động đồng bộ từ bài viết giá xăng dầu mới nhất của VnExpress",
+      source: "news" as const,
+      source_url: articleUrl
+    } satisfies FuelPrices;
+  }
+
+  const rows = extractNewsTableRows(topicHtml);
   const ron95IIIPrice = rows.find((row) =>
     /XANG\s*RON\s*95-III/i.test(normalizeProductTitle(row.label))
   )?.price;
@@ -285,13 +380,13 @@ async function fetchNewsFuelPrices() {
   )?.price;
 
   if (!e5Price || !ron95IIIPrice) {
-    throw new Error("Public fuel price table did not include enough fuel grades");
+    throw new Error("Public fuel price sources did not include enough fuel grades");
   }
 
   return {
     "E5 RON92": e5Price,
     "RON95-III": ron95IIIPrice,
-    last_updated: parseNewsTableTimestamp(html),
+    last_updated: parseNewsTableTimestamp(topicHtml),
     next_update_note: "Tự động đồng bộ từ bảng giá xăng dầu công khai mới nhất",
     source: "news" as const,
     source_url: VNEXPRESS_FUEL_PRICES_URL
@@ -316,7 +411,12 @@ async function fetchOfficialFuelPrices() {
   });
   const ron95IIIPrice = pickPrice(products, (title) => {
     const normalized = normalizeProductTitle(title);
-    return normalized.startsWith("XANG KHONG CHI RON 95-III");
+    return (
+      normalized.includes("RON 95-III") &&
+      !normalized.includes("RON 95-IV") &&
+      !normalized.includes("RON 95-V") &&
+      !normalized.includes("E10")
+    );
   });
   if (!e5Price || !ron95IIIPrice) {
     throw new Error("Petrolimex products did not include enough fuel grades");
@@ -545,7 +645,8 @@ async function performFuelPriceOcr(imageUrl: string) {
       "User-Agent": "Mozilla/5.0 (compatible; DoXangBaoNhieu/1.0)",
       Referer: PETROLIMEX_HOME_URL
     },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS * 3)
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS * 3),
+    cache: "no-store"
   });
 
   if (!imageResponse.ok) {
@@ -674,14 +775,17 @@ async function fetchOcrFuelPrices(announcement: AnnouncementInfo) {
 }
 
 export async function getFuelPrices(): Promise<FuelPricesState> {
-  try {
-    return {
-      status: "success",
-      prices: await fetchNewsFuelPrices()
-    };
-  } catch {}
+  const latestAnnouncementPromise = fetchLatestAnnouncement().catch(() => undefined);
+  const latestAnnouncement = await latestAnnouncementPromise;
 
-  const latestAnnouncement = await fetchLatestAnnouncement().catch(() => undefined);
+  if (latestAnnouncement) {
+    try {
+      return {
+        status: "success",
+        prices: await fetchOcrFuelPrices(latestAnnouncement)
+      };
+    } catch {}
+  }
 
   try {
     const officialPrices = await fetchOfficialFuelPrices();
@@ -696,30 +800,20 @@ export async function getFuelPrices(): Promise<FuelPricesState> {
           }
         : officialPrices
     };
-  } catch {
-    if (latestAnnouncement) {
-      try {
-        return {
-          status: "success",
-          prices: await fetchOcrFuelPrices(latestAnnouncement)
-        };
-      } catch {
-        return {
-          status: "error",
-          message:
-            "Không tải được giá xăng từ nguồn công khai hoặc Petrolimex lúc này. Vui lòng thử lại sau.",
-          last_checked: new Date().toISOString(),
-          source_url: latestAnnouncement.sourceUrl
-        };
-      }
-    }
+  } catch {}
 
+  try {
     return {
-      status: "error",
-      message:
-        "Không tải được giá xăng từ nguồn công khai hoặc Petrolimex lúc này. Vui lòng thử lại sau.",
-      last_checked: new Date().toISOString(),
-      source_url: VNEXPRESS_FUEL_PRICES_URL
+      status: "success",
+      prices: await fetchNewsFuelPrices()
     };
-  }
+  } catch {}
+
+  return {
+    status: "error",
+    message:
+      "Không tải được giá xăng từ nguồn công khai hoặc Petrolimex lúc này. Vui lòng thử lại sau.",
+    last_checked: new Date().toISOString(),
+    source_url: latestAnnouncement?.sourceUrl ?? VNEXPRESS_FUEL_PRICES_URL
+  };
 }
