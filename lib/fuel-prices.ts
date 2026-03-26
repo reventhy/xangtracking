@@ -1,4 +1,5 @@
 import { createDecipheriv, createHmac } from "node:crypto";
+import { unstable_cache } from "next/cache";
 import { FuelPrices, FuelPricesState } from "@/lib/types";
 
 const PETROLIMEX_LOGIN_URL = "https://www.petrolimex.com.vn/_login";
@@ -8,7 +9,7 @@ const PETROLIMEX_HOME_URL = "https://www.petrolimex.com.vn/";
 const PETROLIMEX_PRESS_URL =
   "https://www.petrolimex.com.vn/ndi/thong-cao-bao-chi.html";
 const VNEXPRESS_FUEL_PRICES_URL = "https://vnexpress.net/chu-de/gia-xang-dau-3026";
-const REQUEST_TIMEOUT_MS = 6000;
+const REQUEST_TIMEOUT_MS = 3000;
 
 const PETROLIMEX_SYSTEM_ID = "6783dc1271ff449e95b74a9520964169";
 const PETROLIMEX_REPOSITORY_ID = "a95451e23b474fe5886bfb7cf843f53c";
@@ -341,12 +342,17 @@ async function fetchNewsFuelPrices() {
   const topicHtml = await fetchText(VNEXPRESS_FUEL_PRICES_URL);
   const articleUrls = findLatestNewsArticleUrls(topicHtml);
 
-  for (const articleUrl of articleUrls) {
-    const articleHtml = await fetchText(articleUrl).catch(() => undefined);
+  // Fetch articles in parallel with timeout
+  const articleHtmls = await Promise.all(
+    articleUrls.map((url) =>
+      fetchText(url)
+        .catch(() => undefined)
+    )
+  );
 
-    if (!articleHtml) {
-      continue;
-    }
+  // Check articles for prices
+  for (const articleHtml of articleHtmls) {
+    if (!articleHtml) continue;
 
     const rows = extractArticleTableRows(articleHtml);
     const ron95IIIPrice = rows.find((row) =>
@@ -356,20 +362,19 @@ async function fetchNewsFuelPrices() {
       /XANG\s*E5\s*RON\s*92/i.test(normalizeProductTitle(row.label))
     )?.price;
 
-    if (!e5Price || !ron95IIIPrice) {
-      continue;
+    if (e5Price && ron95IIIPrice) {
+      return {
+        "E5 RON92": e5Price,
+        "RON95-III": ron95IIIPrice,
+        last_updated: parseNewsArticleTimestamp(articleHtml),
+        next_update_note: "Tự động đồng bộ từ bài viết giá xăng dầu mới nhất của VnExpress",
+        source: "news" as const,
+        source_url: VNEXPRESS_FUEL_PRICES_URL
+      } satisfies FuelPrices;
     }
-
-    return {
-      "E5 RON92": e5Price,
-      "RON95-III": ron95IIIPrice,
-      last_updated: parseNewsArticleTimestamp(articleHtml),
-      next_update_note: "Tự động đồng bộ từ bài viết giá xăng dầu mới nhất của VnExpress",
-      source: "news" as const,
-      source_url: articleUrl
-    } satisfies FuelPrices;
   }
 
+  // Fallback: try extracting from topic page table
   const rows = extractNewsTableRows(topicHtml);
   const ron95IIIPrice = rows.find((row) =>
     /XANG\s*RON\s*95-III/i.test(normalizeProductTitle(row.label))
@@ -765,40 +770,33 @@ async function fetchOcrFuelPrices(announcement: AnnouncementInfo) {
 }
 */
 
+// Cache fuel prices for 5 minutes to avoid repeated API calls
+const getCachedFuelPrices = unstable_cache(
+  async (): Promise<FuelPricesState> => {
+    // Try official API first (single request, no announcement page needed)
+    try {
+      const prices = await fetchOfficialFuelPrices();
+      return { status: "success", prices };
+    } catch {
+      // Fall back to news scraping
+      try {
+        const prices = await fetchNewsFuelPrices();
+        return { status: "success", prices };
+      } catch {
+        return {
+          status: "error",
+          message:
+            "Không tải được giá xăng từ nguồn công khai hoặc Petrolimex lúc này. Vui lòng thử lại sau.",
+          last_checked: new Date().toISOString(),
+          source_url: PETROLIMEX_PRESS_URL
+        };
+      }
+    }
+  },
+  ["fuel-prices"],
+  { revalidate: 300, tags: ["fuel-prices"] } // 5 minutes
+);
+
 export async function getFuelPrices(): Promise<FuelPricesState> {
-  const latestAnnouncementPromise = fetchLatestAnnouncement().catch(() => undefined);
-  const latestAnnouncement = await latestAnnouncementPromise;
-
-  // Skip OCR in serverless environment - use API method instead
-  // OCR requires tesseract.js worker which doesn't work well in Vercel serverless
-
-  try {
-    const officialPrices = await fetchOfficialFuelPrices();
-
-    return {
-      status: "success",
-      prices: latestAnnouncement
-        ? {
-            ...officialPrices,
-            last_updated: latestAnnouncement.lastUpdated ?? officialPrices.last_updated,
-            source_url: latestAnnouncement.sourceUrl
-          }
-        : officialPrices
-    };
-  } catch {}
-
-  try {
-    return {
-      status: "success",
-      prices: await fetchNewsFuelPrices()
-    };
-  } catch {}
-
-  return {
-    status: "error",
-    message:
-      "Không tải được giá xăng từ nguồn công khai hoặc Petrolimex lúc này. Vui lòng thử lại sau.",
-    last_checked: new Date().toISOString(),
-    source_url: latestAnnouncement?.sourceUrl ?? VNEXPRESS_FUEL_PRICES_URL
-  };
+  return getCachedFuelPrices();
 }
