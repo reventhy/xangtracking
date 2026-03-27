@@ -31,7 +31,7 @@ export function ExportCard({
     year: "numeric",
   });
 
-  const pricePerLiter = fuelPrices[fuelType];
+  const pricePerLiter = fuelPrices.zone1[fuelType];
 
   return (
     <div
