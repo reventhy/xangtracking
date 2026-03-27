@@ -49,43 +49,54 @@ type CachedToken = {
   expiresAt: number; // Unix timestamp in ms
 };
 
-let cachedToken: CachedToken | null = null;
+// Use unstable_cache to persist token across serverless invocations
+const getCachedAccessToken = unstable_cache(
+  async (): Promise<CachedToken> => {
+    const response = await fetch(PETROLIMEX_MOBILE_AUTH_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Petrolimex auth failed: ${response.status} ${response.statusText}`);
+    }
+
+    const auth = (await response.json()) as MobileAuthResponse;
+
+    if (auth.code !== 200 || !auth.data?.access_token) {
+      throw new Error(`Petrolimex auth returned unexpected response: code ${auth.code}`);
+    }
+
+    return {
+      accessToken: auth.data.access_token,
+      expiresAt: Date.now() + auth.data.expires_in * 1000
+    };
+  },
+  ["petrolimex-token"],
+  { revalidate: 300, tags: ["petrolimex-token"] } // Cache for 5 minutes
+);
+
+// In-memory cache for hot path (same request)
+let memoryToken: CachedToken | null = null;
 
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
 
-  // Reuse token if still valid (with 60s buffer before expiry)
-  if (cachedToken && cachedToken.expiresAt > now + 60_000) {
-    return cachedToken.accessToken;
+  // Check memory cache first (fastest - same request)
+  if (memoryToken && memoryToken.expiresAt > now + 60_000) {
+    return memoryToken.accessToken;
   }
 
-  const response = await fetch(PETROLIMEX_MOBILE_AUTH_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
-    body: "{}",
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error(`Petrolimex auth failed: ${response.status} ${response.statusText}`);
-  }
-
-  const auth = (await response.json()) as MobileAuthResponse;
-
-  if (auth.code !== 200 || !auth.data?.access_token) {
-    throw new Error(`Petrolimex auth returned unexpected response: code ${auth.code}`);
-  }
-
-  cachedToken = {
-    accessToken: auth.data.access_token,
-    expiresAt: now + auth.data.expires_in * 1000
-  };
-
-  return cachedToken.accessToken;
+  // Use unstable_cache (persists across serverless invocations)
+  const token = await getCachedAccessToken();
+  memoryToken = token; // Update memory cache
+  return token.accessToken;
 }
 
 
