@@ -19,7 +19,6 @@ A lightweight web app that helps Vietnamese motorbike owners calculate fuel cost
 - **Framework**: Next.js 16 (App Router, Turbopack)
 - **Language**: TypeScript
 - **Runtime**: React 19
-- **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Fonts**: Be Vietnam Pro (Google Fonts)
 - **Image Generation**: html2canvas
