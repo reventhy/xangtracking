@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { calculateMotorcycleCosts, formatCurrency, formatDecimal, getFuelPrice } from "@/lib/calculations";
 import { Brand, FuelPrices, FuelType, FuelZone, Motorcycle } from "@/lib/types";
-import { FunnyConversion } from "./FunnyConversion";
+import { FunnyConversion, MoodSelector, MoodMode } from "./FunnyConversion";
 
 type ResultCardProps = {
   motorcycles: Motorcycle[];
@@ -42,6 +42,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
     useState<(typeof calculatorModes)[number]["id"]>("full");
   const [amountInput, setAmountInput] = useState("");
   const [selectedZone, setSelectedZone] = useState<FuelZone>("zone1");
+  const [mood, setMood] = useState<MoodMode>("normal");
 
   const motorcycle = selectedMotorcycle;
   const result = calculateMotorcycleCosts(motorcycle, fuelPrices, selectedFuelType, selectedZone);
@@ -247,7 +248,9 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
               </div>
             </div>
 
-            <FunnyConversion amount={result.fillCost} />
+            <MoodSelector currentMood={mood} onMoodChange={setMood} />
+
+            <FunnyConversion amount={result.fillCost} mood={mood} />
           </div>
         ) : (
           <div className="mt-5 flex flex-col gap-3">
@@ -308,7 +311,12 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
               </div>
             </div>
 
-            {amountValue > 0 && <FunnyConversion amount={amountValue} />}
+            {amountValue > 0 && (
+              <>
+                <MoodSelector currentMood={mood} onMoodChange={setMood} />
+                <FunnyConversion amount={amountValue} mood={mood} />
+              </>
+            )}
           </div>
         )}
       </div>
