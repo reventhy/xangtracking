@@ -53,13 +53,11 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
     romantic: 150000,  // Nice round number for date
   };
 
-  // Handle mood change with auto-recommendation
+  // Handle mood change - auto-switch to amount mode and fill recommended amount
   function handleMoodChange(newMood: MoodMode) {
     setMood(newMood);
-    // Auto-fill recommended amount when in "amount" mode
-    if (calculatorMode === "amount") {
-      setAmountInput(String(MOOD_RECOMMENDATIONS[newMood]));
-    }
+    setCalculatorMode("amount");
+    setAmountInput(String(MOOD_RECOMMENDATIONS[newMood]));
   }
 
   const motorcycle = selectedMotorcycle;
@@ -266,8 +264,6 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
               </div>
             </div>
 
-            <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
-
             <FunnyConversion amount={result.fillCost} mood={mood} />
           </div>
         ) : (
@@ -329,12 +325,9 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
               </div>
             </div>
 
-            {amountValue > 0 && (
-              <>
-                <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
-                <FunnyConversion amount={amountValue} mood={mood} />
-              </>
-            )}
+            <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
+
+            {amountValue > 0 && <FunnyConversion amount={amountValue} mood={mood} />}
           </div>
         )}
       </div>
