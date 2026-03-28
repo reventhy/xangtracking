@@ -31,31 +31,36 @@ interface FunnyConversionProps {
   mood?: MoodMode;
 }
 
-const MOOD_MESSAGES: Record<MoodMode, { prefix: string; suffix: string; color: string }> = {
+const MOOD_MESSAGES: Record<MoodMode, { prefix: string; suffix: string; color: string; recommendation: string }> = {
   normal: {
     prefix: "Cùng số tiền này",
     suffix: "",
     color: "bg-[#0058A8]",
+    recommendation: "Gợi ý: 100k đổ đầy vừa đủ",
   },
   broke: {
     prefix: "💸 Ví mỏng alert!",
     suffix: "... đành ngắm vậy 😢",
     color: "bg-[#8B4513]",
+    recommendation: "Gợi ý: 50k đổ tạm về nhà",
   },
   rich: {
     prefix: "💎 Đẳng cấp thượng lưu",
     suffix: "- Treat yourself! ✨",
     color: "bg-[#FFD700]",
+    recommendation: "Gợi ý: 200k đổ sang chảnh",
   },
   hangry: {
     prefix: "🍴 Đói rồi!",
     suffix: "- Đi ăn thôi! 🔥",
     color: "bg-[#D32F2F]",
+    recommendation: "Gợi ý: 30k vừa đủ tới quán",
   },
   romantic: {
     prefix: "💕 Date night budget",
     suffix: "- Mời em đi chơi! 🌹",
     color: "bg-[#E91E63]",
+    recommendation: "Gợi ý: 150k cho buổi hẹn",
   },
 };
 
@@ -174,19 +179,19 @@ interface MoodSelectorProps {
   onMoodChange: (mood: MoodMode) => void;
 }
 
-const MOODS: { value: MoodMode; label: string; emoji: string }[] = [
-  { value: "normal", label: "Bình thường", emoji: "😊" },
-  { value: "broke", label: "Ví mỏng", emoji: "💸" },
-  { value: "rich", label: "Đại gia", emoji: "💎" },
-  { value: "hangry", label: "Đói rồi", emoji: "🍴" },
-  { value: "romantic", label: "Tỏ tình", emoji: "💕" },
+const MOODS: { value: MoodMode; label: string; emoji: string; hint: string }[] = [
+  { value: "normal", label: "Bình thường", emoji: "😊", hint: "100k" },
+  { value: "broke", label: "Ví mỏng", emoji: "💸", hint: "50k" },
+  { value: "rich", label: "Đại gia", emoji: "💎", hint: "200k" },
+  { value: "hangry", label: "Đói rồi", emoji: "🍴", hint: "30k" },
+  { value: "romantic", label: "Tỏ tình", emoji: "💕", hint: "150k" },
 ];
 
 export function MoodSelector({ currentMood, onMoodChange }: MoodSelectorProps) {
   return (
     <div className="rounded-[10px] bg-[#F0EDE6] p-3">
       <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780] mb-2">
-        Hôm nay bạn thế nào?
+        Hôm nay bạn thế nào? (Tự động gợi ý số tiền)
       </p>
       <div className="flex flex-wrap gap-2">
         {MOODS.map((mood) => (
@@ -198,9 +203,11 @@ export function MoodSelector({ currentMood, onMoodChange }: MoodSelectorProps) {
                 ? "bg-[#1a1a18] text-[#F0EDE6]"
                 : "bg-white text-[#888780] hover:bg-[#1a1a18]/10"
             }`}
+            title={`Gợi ý: ${mood.hint}`}
           >
             <span>{mood.emoji}</span>
             <span>{mood.label}</span>
+            <span className="opacity-60 text-[10px]">({mood.hint})</span>
           </button>
         ))}
       </div>

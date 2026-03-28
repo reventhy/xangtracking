@@ -44,6 +44,24 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
   const [selectedZone, setSelectedZone] = useState<FuelZone>("zone1");
   const [mood, setMood] = useState<MoodMode>("normal");
 
+  // Mood-based recommended amounts (in VND)
+  const MOOD_RECOMMENDATIONS: Record<MoodMode, number> = {
+    normal: 100000,    // Standard fill
+    broke: 50000,      // Minimum viable
+    rich: 200000,      // Premium fill
+    hangry: 30000,     // Just enough to get to food
+    romantic: 150000,  // Nice round number for date
+  };
+
+  // Handle mood change with auto-recommendation
+  function handleMoodChange(newMood: MoodMode) {
+    setMood(newMood);
+    // Auto-fill recommended amount when in "amount" mode
+    if (calculatorMode === "amount") {
+      setAmountInput(String(MOOD_RECOMMENDATIONS[newMood]));
+    }
+  }
+
   const motorcycle = selectedMotorcycle;
   const result = calculateMotorcycleCosts(motorcycle, fuelPrices, selectedFuelType, selectedZone);
   const pricePerLiter = getFuelPrice(fuelPrices, selectedFuelType, selectedZone);
@@ -248,7 +266,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
               </div>
             </div>
 
-            <MoodSelector currentMood={mood} onMoodChange={setMood} />
+            <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
 
             <FunnyConversion amount={result.fillCost} mood={mood} />
           </div>
@@ -313,7 +331,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
 
             {amountValue > 0 && (
               <>
-                <MoodSelector currentMood={mood} onMoodChange={setMood} />
+                <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
                 <FunnyConversion amount={amountValue} mood={mood} />
               </>
             )}
