@@ -16,13 +16,14 @@ A lightweight web app that helps Vietnamese motorbike owners calculate fuel cost
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **Language**: TypeScript
+- **Runtime**: React 19
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Fonts**: Be Vietnam Pro (Google Fonts)
 - **Image Generation**: html2canvas
 - **Analytics**: Vercel Analytics
-- **OCR**: tesseract.js (configured but disabled for serverless compatibility)
 
 ## Getting Started
 
@@ -66,7 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 │   ├── calculations.ts     # Fuel cost calculations
 │   └── types.ts            # TypeScript type definitions
 ├── public/
-└── eng.traineddata         # Tesseract OCR language data
+└── next.config.js         # Next.js configuration
 ```
 
 ## Environment Notes
