@@ -156,7 +156,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
             </p>
             <button
               type="button"
-              className="relative mt-2 inline-flex items-center gap-2 text-left text-[24px] font-medium leading-7 text-[#1a1a18]"
+              className="relative mt-2 inline-flex items-center gap-2 text-left text-[20px] sm:text-[24px] font-medium leading-7 text-[#1a1a18] max-w-full"
               onClick={() => {
                 dismissBikeHint(true);
                 setIsSelectorOpen(true);
@@ -164,7 +164,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
             >
               {showBikeHint ? (
                 <span
-                  className={`absolute right-full top-1/2 mr-3 inline-flex -translate-y-1/2 items-center transition-all duration-300 ${
+                  className={`absolute right-full top-1/2 mr-3 inline-flex -translate-y-1/2 items-center transition-all duration-300 hidden sm:inline-flex ${
                     isBikeHintFading
                       ? "-translate-x-1 -translate-y-1/2 opacity-0"
                       : "translate-x-0 -translate-y-1/2 opacity-100"
@@ -176,8 +176,8 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
                   <span className="h-0 w-0 border-b-[7px] border-l-[8px] border-t-[7px] border-b-transparent border-l-[#1a1a18] border-t-transparent" />
                 </span>
               ) : null}
-              <span>{motorcycle.name}</span>
-              <span aria-hidden="true" className="text-[18px] text-[#888780]">
+              <span className="truncate">{motorcycle.name}</span>
+              <span aria-hidden="true" className="text-[18px] text-[#888780] shrink-0">
                 ˅
               </span>
             </button>
@@ -235,11 +235,11 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
 
         {calculatorMode === "full" ? (
           <div className="mt-5 flex flex-col gap-3">
-            <div className="rounded-2xl bg-[#F0EDE6] px-5 py-5">
+            <div className="rounded-2xl bg-[#F0EDE6] px-4 sm:px-5 py-4 sm:py-5">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#888780]">
                 Đổ đầy bình
               </p>
-              <p className="mt-2 text-[40px] font-medium tracking-[-1px] text-[#1a1a18] [font-variant-numeric:tabular-nums]">
+              <p className="mt-2 text-[32px] sm:text-[40px] font-medium tracking-[-1px] text-[#1a1a18] [font-variant-numeric:tabular-nums] break-all">
                 {formatCurrency(result.fillCost)}
               </p>
             </div>
@@ -275,7 +275,7 @@ export function ResultCard({ motorcycles, fuelPrices }: ResultCardProps) {
               <div className="mt-2 flex items-end gap-2 border-b-[1.5px] border-[#1a1a18] pb-2">
                 <input
                   inputMode="numeric"
-                  className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[36px] font-medium tracking-[-1px] text-[#1a1a18] outline-none placeholder:text-[#B4B2A9] [font-variant-numeric:tabular-nums]"
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[28px] sm:text-[36px] font-medium tracking-[-1px] text-[#1a1a18] outline-none placeholder:text-[#B4B2A9] [font-variant-numeric:tabular-nums]"
                   placeholder="50.000"
                   value={
                     amountInput.length > 0
